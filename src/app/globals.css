@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+/* Francis Parker Collegiate BI 색상체계 (FPC_BI_221118 BS-16) */
+@theme inline {
+  --color-brand: #00341e; /* Main: Dark Green, PANTONE 3308C */
+  --color-brand-700: #0a4a2e;
+  --color-brand-50: #eef2ee;
+  --color-silver: #bfbfba; /* Sub: Light Gray, PANTONE Cool Gray 2C */
+  --color-beige: #bfbb91; /* Sub: Beige, PANTONE 453C */
+  --color-warmgray: #6b6e72; /* Sub: PANTONE Warm Gray 11 */
+  --color-gold: #a8925a; /* GOLD, PANTONE 871C 근사값 */
+  --color-cream: #f7f6f0;
+  --color-ink: #1d2420;
+
+  --font-sans: var(--font-nanum-gothic), system-ui, sans-serif;
+  --font-serif: var(--font-crimson), "Times New Roman", serif;
+  --font-myeongjo: var(--font-nanum-myeongjo), serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  word-break: keep-all;
+}
