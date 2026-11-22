@@ -1,27 +1,13 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-
-type Field = "name" | "email" | "phone" | "message";
-type Errors = Partial<Record<Field, string>>;
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^0\d{1,2}-?\d{3,4}-?\d{4}$/;
-
-function validate(data: Record<Field, string>): Errors {
-  const errors: Errors = {};
-  if (!data.name.trim()) errors.name = "이름을 입력해 주세요.";
-  if (!data.email.trim()) errors.email = "이메일을 입력해 주세요.";
-  else if (!EMAIL_RE.test(data.email.trim()))
-    errors.email = "올바른 이메일 형식이 아닙니다.";
-  if (!data.phone.trim()) errors.phone = "전화번호를 입력해 주세요.";
-  else if (!PHONE_RE.test(data.phone.trim()))
-    errors.phone = "예: 010-1234-5678";
-  if (!data.message.trim()) errors.message = "문의 내용을 입력해 주세요.";
-  else if (data.message.trim().length < 10)
-    errors.message = "문의 내용은 10자 이상 입력해 주세요.";
-  return errors;
-}
+import { useState, useTransition, type FormEvent } from "react";
+import { submitInquiry } from "./actions";
+import {
+  MESSAGE_MAX,
+  validateInquiry as validate,
+  type InquiryErrors as Errors,
+  type InquiryField as Field,
+} from "@/lib/inquiry";
 
 // 숫자만 남기고 010-1234-5678 형태로 하이픈을 넣는다.
 function formatPhone(value: string) {
@@ -38,7 +24,7 @@ function formatPhone(value: string) {
   return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
 }
 
-const MAX_MESSAGE = 1000;
+const MAX_MESSAGE = MESSAGE_MAX;
 
 export default function ContactForm() {
   const [values, setValues] = useState<Record<Field, string>>({
@@ -49,6 +35,15 @@ export default function ContactForm() {
   });
   const [errors, setErrors] = useState<Errors>({});
   const [submitted, setSubmitted] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [honeypot, setHoneypot] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  function focusFirst(found: Errors) {
+    const first = Object.keys(found)[0];
+    if (first) document.getElementById(first)?.focus();
+    return Boolean(first);
+  }
 
   function update(field: Field, value: string) {
     const next = { ...values, [field]: field === "phone" ? formatPhone(value) : value };
@@ -58,20 +53,34 @@ export default function ContactForm() {
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (pending) return;
+    setFormError("");
     const found = validate(values);
     setErrors(found);
-    const first = Object.keys(found)[0];
-    if (first) {
-      document.getElementById(first)?.focus();
-      return;
-    }
-    // 백엔드 미구현: 실제 전송 없이 완료 화면만 표시한다.
-    setSubmitted(true);
+    if (focusFirst(found)) return;
+
+    startTransition(async () => {
+      try {
+        const result = await submitInquiry({ ...values, website: honeypot });
+        if (result.ok) {
+          setSubmitted(true);
+          return;
+        }
+        if (result.errors) {
+          setErrors(result.errors);
+          focusFirst(result.errors);
+        }
+        if (result.message) setFormError(result.message);
+      } catch {
+        setFormError("네트워크 오류로 접수하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      }
+    });
   }
 
   function reset() {
     setValues({ name: "", email: "", phone: "", message: "" });
     setErrors({});
+    setFormError("");
     setSubmitted(false);
   }
 
@@ -157,11 +166,33 @@ export default function ContactForm() {
         </div>
       </div>
 
+      {/* 허니팟: 화면과 보조기기에서 숨김. 봇이 채우면 서버가 저장하지 않는다. */}
+      <div aria-hidden className="absolute -left-[9999px] h-px w-px overflow-hidden">
+        <label htmlFor="website">Website</label>
+        <input
+          id="website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+        />
+      </div>
+
+      {formError && (
+        <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          {formError}
+        </p>
+      )}
+
       <button
         type="submit"
-        className="mt-1 h-12 rounded-full bg-brand font-bold text-white transition-colors hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        disabled={pending}
+        aria-busy={pending}
+        className="mt-1 h-12 rounded-full bg-brand font-bold text-white transition-colors hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-wait disabled:opacity-60"
       >
-        문의하기
+        {pending ? "접수 중…" : "문의하기"}
       </button>
     </form>
   );

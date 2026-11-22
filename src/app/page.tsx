@@ -260,13 +260,15 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-brand text-white/70">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-12 sm:flex-row sm:items-end sm:justify-between sm:px-6">
-          <Image
-            src="/brand/logo-horizontal.png"
-            alt="Francis Parker Dongtan"
-            width={1182}
-            height={395}
-            className="h-10 w-auto brightness-0 invert"
-          />
+          <div className="w-fit rounded-xl bg-cream px-4 py-3">
+            <Image
+              src="/brand/logo-horizontal.png"
+              alt="Francis Parker Dongtan"
+              width={1182}
+              height={395}
+              className="h-9 w-auto"
+            />
+          </div>
           <p className="text-sm">
             © 프랜시스파커 동탄. All rights reserved.
           </p>
